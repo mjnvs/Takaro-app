@@ -8,17 +8,17 @@ interface TotalsFooterProps {
 
 const TotalsFooter: React.FC<TotalsFooterProps> = ({ totals, supermarkets }) => {
 
-  const { minTotal, winnerIndex } = useMemo(() => {
+  const { winnerIndex, minTotal } = useMemo(() => {
     if (totals.length === 0) {
-      return { minTotal: null, winnerIndex: -1 };
+      return { winnerIndex: -1, minTotal: null };
     }
     const validTotals = totals.filter(t => t > 0);
     if(validTotals.length === 0) {
-        return { minTotal: null, winnerIndex: -1 };
+        return { winnerIndex: -1, minTotal: null };
     }
     const minTotalValue = Math.min(...validTotals);
     const winnerIdx = totals.findIndex(t => t === minTotalValue);
-    return { minTotal: minTotalValue, winnerIndex: winnerIdx };
+    return { winnerIndex: winnerIdx, minTotal: minTotalValue };
   }, [totals]);
 
 
@@ -35,29 +35,41 @@ const TotalsFooter: React.FC<TotalsFooterProps> = ({ totals, supermarkets }) => 
         <div className="flex flex-row justify-around items-start gap-1 sm:gap-2">
             {supermarkets.map((name, index) => {
                 const isWinner = index === winnerIndex;
-                const total = totals[index];
-                let percentageDiff = null;
-
-                if (minTotal !== null && total > minTotal && minTotal > 0) {
-                    percentageDiff = (((total - minTotal) / minTotal) * 100).toFixed(0);
-                }
+                const currentTotal = totals[index];
+                const isMoreExpensive = minTotal !== null && currentTotal > 0 && currentTotal > minTotal;
+                const percentageDiff = isMoreExpensive ? Math.round(((currentTotal - minTotal!) / minTotal!) * 100) : 0;
 
                 return (
-                    <div key={index} className={`flex-1 text-center p-1 sm:p-2 rounded-lg transition-all duration-300 flex flex-col justify-between ${isWinner ? 'bg-green-100 border-2 border-green-300' : 'bg-slate-100'}`}>
+                    <div 
+                        key={index} 
+                        className={`flex-1 text-center p-1 sm:p-2 rounded-lg transition-all duration-300 flex flex-col justify-between ${
+                            isWinner 
+                                ? 'bg-green-100 border-2 border-green-300' 
+                                : isMoreExpensive
+                                ? 'bg-red-50 border-2 border-red-400'
+                                : 'bg-slate-100'
+                        }`}
+                    >
                         <div>
                             <div className="flex items-center justify-center gap-1">
-                            {isWinner && <CrownIcon className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500" />}
-                            <p className="font-semibold text-xs sm:text-sm text-slate-600 truncate" title={name}>{name}</p>
+                                {isWinner && <CrownIcon className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500" />}
+                                <p className="font-semibold text-xs sm:text-sm text-slate-600 truncate" title={name}>{name}</p>
                             </div>
-                            <p className={`text-base sm:text-2xl font-bold ${isWinner ? 'text-green-600' : 'text-slate-800'}`}>
+                            <p className={`text-base sm:text-2xl font-bold ${
+                                isWinner 
+                                    ? 'text-green-600' 
+                                    : isMoreExpensive
+                                    ? 'text-red-700'
+                                    : 'text-slate-800'
+                            }`}>
                                 {formatCurrency(totals[index])}
                             </p>
                         </div>
-                        <div className="h-4 mt-1">
-                            {percentageDiff && (
-                                <div className="text-xs font-semibold text-red-500">
+                        <div className="h-4 mt-1 flex items-center justify-center">
+                            {isMoreExpensive && (
+                                <span className="text-xs sm:text-sm font-bold text-red-600">
                                     +{percentageDiff}%
-                                </div>
+                                </span>
                             )}
                         </div>
                     </div>

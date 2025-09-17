@@ -23,15 +23,11 @@ const ProductRow: React.FC<ProductRowProps> = ({ product, supermarkets, onPriceC
     onPriceChange(product.id, index, isNaN(parsedValue) ? null : parsedValue);
   };
   
-  const gridTemplateColumns = `minmax(140px, 1.5fr) repeat(${supermarkets.length}, minmax(120px, 1fr))`;
+  const gridTemplateColumns = `minmax(200px, 2fr) repeat(${supermarkets.length}, minmax(160px, 1fr))`;
 
   const renderPriceInput = (index: number) => {
     const price = product.prices[index];
     const isCheapest = minPrice !== null && price !== null && price === minPrice;
-    const isMoreExpensive = minPrice !== null && price !== null && price > minPrice;
-    const percentageDiff = isMoreExpensive
-        ? (((price - minPrice) / minPrice) * 100).toFixed(0)
-        : null;
     
     return (
       <div>
@@ -46,23 +42,16 @@ const ProductRow: React.FC<ProductRowProps> = ({ product, supermarkets, onPriceC
             className={`w-full pl-9 pr-2 py-2 border-2 rounded-md transition-all duration-200 text-center font-semibold text-lg ${
                 isCheapest
                 ? 'border-green-400 bg-green-50 ring-2 ring-green-200 text-green-700'
-                : isMoreExpensive
-                ? 'border-red-300 bg-red-50 text-red-700'
                 : 'border-slate-200 bg-white text-slate-800 hover:border-indigo-300'
             }`}
           />
         </div>
-        {percentageDiff && (
-            <div className="mt-1 text-xs text-red-500 font-semibold text-center">
-                +{percentageDiff}% mais caro
-            </div>
-        )}
       </div>
     );
   };
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-white rounded-lg shadow md:pt-2">
       {/* Mobile Layout */}
       <div className="p-3 md:hidden">
         <div className="flex items-center justify-between pb-2 mb-2 border-b">
@@ -88,18 +77,41 @@ const ProductRow: React.FC<ProductRowProps> = ({ product, supermarkets, onPriceC
           {supermarkets.map((name, index) => {
             const price = product.prices[index];
             const isCheapest = minPrice !== null && price !== null && price === minPrice;
+            const isMoreExpensive = minPrice !== null && price !== null && price > minPrice;
+            const percentageDiff = isMoreExpensive ? Math.round(((price! - minPrice!) / minPrice!) * 100) : 0;
 
             return (
                 <div key={index}>
                     <div className="flex justify-between items-center mb-1">
-                        <label className="font-medium text-slate-700 truncate pr-2" title={name}>{name}</label>
+                        <label className="font-medium text-slate-700 truncate pr-2 min-w-0" title={name}>{name}</label>
                         {isCheapest && (
                             <div className="text-xs bg-green-500 text-white font-bold px-2 py-0.5 rounded-full shadow flex-shrink-0">
                                 Mais Barato
                             </div>
                         )}
+                        {isMoreExpensive && (
+                            <span className="text-xs font-bold text-red-600">
+                                +{percentageDiff}%
+                            </span>
+                        )}
                     </div>
-                    {renderPriceInput(index)}
+                    <div className="flex items-center relative">
+                        <span className="absolute left-3 text-slate-400">R$</span>
+                        <input
+                            type="number"
+                            step="0.01"
+                            placeholder="0,00"
+                            value={price === null ? '' : price}
+                            onChange={(e) => handlePriceInputChange(index, e.target.value)}
+                            className={`w-full pl-9 pr-2 py-2 border-2 rounded-md transition-all duration-200 text-center font-semibold text-lg ${
+                                isCheapest
+                                ? 'border-green-400 bg-green-50 ring-2 ring-green-200 text-green-700'
+                                : isMoreExpensive
+                                ? 'border-red-400 bg-red-50 text-red-700'
+                                : 'border-slate-200 bg-white text-slate-800 hover:border-indigo-300'
+                            }`}
+                        />
+                    </div>
                 </div>
             )
           })}

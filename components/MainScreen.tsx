@@ -19,6 +19,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
   const [products, setProducts] = useState<Product[]>([]);
   const [supermarkets, setSupermarkets] = useState<string[]>(initialSupermarkets);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -26,6 +27,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   
   const storageKey = `takaro-products-${initialSupermarkets.join('-').replace(/\s+/g, '')}`;
+  const timestampStorageKey = `takaro-timestamp-${initialSupermarkets.join('-').replace(/\s+/g, '')}`;
 
   useEffect(() => {
     try {
@@ -40,22 +42,33 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
         }));
         setProducts(initialProducts);
       }
+
+      const storedTimestamp = localStorage.getItem(timestampStorageKey);
+      if (storedTimestamp) {
+        setLastUpdated(new Date(storedTimestamp));
+      } else {
+        setLastUpdated(new Date());
+      }
     } catch(e) {
-        console.error("Failed to load products", e);
+        console.error("Failed to load data", e);
+        setLastUpdated(new Date());
     } finally {
         setIsLoading(false);
     }
-  }, [storageKey, supermarkets.length]);
+  }, [storageKey, supermarkets.length, timestampStorageKey]);
 
   useEffect(() => {
     if (!isLoading) {
         try {
             localStorage.setItem(storageKey, JSON.stringify(products));
+            if (lastUpdated) {
+              localStorage.setItem(timestampStorageKey, lastUpdated.toISOString());
+            }
         } catch(e) {
-            console.error("Failed to save products", e);
+            console.error("Failed to save data", e);
         }
     }
-  }, [products, storageKey, isLoading]);
+  }, [products, storageKey, isLoading, lastUpdated, timestampStorageKey]);
 
   const handlePriceChange = useCallback((productId: string, supermarketIndex: number, price: number | null) => {
     setProducts(prevProducts =>
@@ -68,6 +81,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
         return p;
       })
     );
+    setLastUpdated(new Date());
   }, []);
 
   const handleAddProduct = (name: string) => {
@@ -99,6 +113,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
   const handleClearPrices = () => {
     if (window.confirm('Tem certeza que deseja limpar todos os preços? Esta ação não pode ser desfeita.')) {
         setProducts(prev => prev.map(p => ({ ...p, prices: Array(supermarkets.length).fill(null) })));
+        setLastUpdated(new Date());
     }
     setShowOptionsMenu(false);
   };
@@ -111,6 +126,11 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
       }, 0)
     );
   }, [products, supermarkets]);
+  
+  const formatTimestamp = (date: Date | null): string => {
+    if (!date) return '';
+    return `Atualizado em: ${date.toLocaleDateString('pt-BR')} às ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  };
 
   if(isLoading) {
       return <div className="flex justify-center items-center h-screen">Carregando produtos...</div>
@@ -119,7 +139,10 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
   return (
     <div className="pb-48">
       <header className="sticky top-0 bg-indigo-600 shadow-md z-20 text-white p-4 flex justify-between items-center h-[72px]">
-        <h1 className="text-2xl font-bold">Takaro</h1>
+        <div>
+            <h1 className="text-2xl font-bold">Takaro</h1>
+            {lastUpdated && <p className="text-xs text-indigo-200 font-light">{formatTimestamp(lastUpdated)}</p>}
+        </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setShowAddModal(true)} 
@@ -159,7 +182,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
 
       <div className="overflow-x-auto p-2 sm:p-4">
         <div className="w-full md:min-w-max">
-            <div className="hidden md:grid gap-2 sticky top-[72px] bg-slate-100 py-2 z-10 border-b-2 border-slate-200" style={{gridTemplateColumns: `minmax(140px, 1.5fr) repeat(${supermarkets.length}, minmax(120px, 1fr))`}}>
+            <div className="hidden md:grid gap-2 sticky top-[72px] bg-slate-100 py-2 z-10 border-b-2 border-slate-200" style={{gridTemplateColumns: `minmax(200px, 2fr) repeat(${supermarkets.length}, minmax(160px, 1fr))`}}>
                 <div className="font-bold text-slate-700 p-3">Produtos</div>
                 {supermarkets.map((name) => (
                     <div key={name} className="font-bold text-slate-700 p-3 text-center truncate">{name}</div>
