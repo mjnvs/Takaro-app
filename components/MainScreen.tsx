@@ -6,8 +6,10 @@ import TotalsFooter from './TotalsFooter';
 import AddProductModal from './AddProductModal';
 import EditProductModal from './EditProductModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import ConfirmSaveModal from './ConfirmSaveModal';
 import { PlusIcon } from './icons/PlusIcon';
 import { MoreIcon } from './icons/MoreIcon';
+import { SaveIcon } from './icons/SaveIcon';
 
 interface MainScreenProps {
   initialSupermarkets: string[];
@@ -25,6 +27,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   
   const storageKey = `takaro-products-${initialSupermarkets.join('-').replace(/\s+/g, '')}`;
   const timestampStorageKey = `takaro-timestamp-${initialSupermarkets.join('-').replace(/\s+/g, '')}`;
@@ -57,19 +62,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
     }
   }, [storageKey, supermarkets.length, timestampStorageKey]);
 
-  useEffect(() => {
-    if (!isLoading) {
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(products));
-            if (lastUpdated) {
-              localStorage.setItem(timestampStorageKey, lastUpdated.toISOString());
-            }
-        } catch(e) {
-            console.error("Failed to save data", e);
-        }
-    }
-  }, [products, storageKey, isLoading, lastUpdated, timestampStorageKey]);
-
   const handlePriceChange = useCallback((productId: string, supermarketIndex: number, price: number | null) => {
     setProducts(prevProducts =>
       prevProducts.map(p => {
@@ -81,7 +73,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
         return p;
       })
     );
-    setLastUpdated(new Date());
+    setHasUnsavedChanges(true);
   }, []);
 
   const handleAddProduct = (name: string) => {
@@ -92,11 +84,13 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
     };
     setProducts(prev => [...prev, newProduct]);
     setShowAddModal(false);
+    setHasUnsavedChanges(true);
   };
 
   const handleEditProduct = (id: string, newName: string) => {
     setProducts(prev => prev.map(p => (p.id === id ? { ...p, name: newName } : p)));
     setEditingProduct(null);
+    setHasUnsavedChanges(true);
   };
 
   const handleDeleteProduct = useCallback((id: string) => {
@@ -107,15 +101,30 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
     if (deletingProductId) {
       setProducts(prev => prev.filter(p => p.id !== deletingProductId));
       setDeletingProductId(null);
+      setHasUnsavedChanges(true);
     }
   };
 
   const handleClearPrices = () => {
     if (window.confirm('Tem certeza que deseja limpar todos os preços? Esta ação não pode ser desfeita.')) {
         setProducts(prev => prev.map(p => ({ ...p, prices: Array(supermarkets.length).fill(null) })));
-        setLastUpdated(new Date());
+        setHasUnsavedChanges(true);
     }
     setShowOptionsMenu(false);
+  };
+
+  const handleSaveChanges = () => {
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(products));
+        const newTimestamp = new Date();
+        setLastUpdated(newTimestamp);
+        localStorage.setItem(timestampStorageKey, newTimestamp.toISOString());
+        setHasUnsavedChanges(false);
+    } catch(e) {
+        console.error("Failed to save data", e);
+    } finally {
+        setShowSaveConfirm(false);
+    }
   };
 
   const totals = useMemo(() => {
@@ -206,6 +215,16 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
 
       <TotalsFooter totals={totals} supermarkets={supermarkets} />
 
+      {hasUnsavedChanges && (
+        <button
+          onClick={() => setShowSaveConfirm(true)}
+          className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 bg-indigo-600 text-white p-4 rounded-full shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 z-40 transform transition-transform hover:scale-110"
+          aria-label="Salvar alterações"
+        >
+          <SaveIcon />
+        </button>
+      )}
+
       {showAddModal && (
         <AddProductModal
           onClose={() => setShowAddModal(false)}
@@ -226,6 +245,13 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
           productName={products.find(p => p.id === deletingProductId)?.name || 'Este produto'}
           onClose={() => setDeletingProductId(null)}
           onConfirm={handleConfirmDelete}
+        />
+      )}
+
+      {showSaveConfirm && (
+        <ConfirmSaveModal
+            onClose={() => setShowSaveConfirm(false)}
+            onConfirm={handleSaveChanges}
         />
       )}
     </div>
