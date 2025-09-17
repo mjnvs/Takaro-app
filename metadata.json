@@ -1,0 +1,5 @@
+{
+  "name": "Takaro - Comparador de Preços",
+  "description": "Um aplicativo para comparar preços de uma lista de compras em até três supermercados, ajudando você a economizar de forma simples e visual.",
+  "requestFramePermissions": []
+}
