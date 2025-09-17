@@ -12,9 +12,10 @@ import { MoreIcon } from './icons/MoreIcon';
 interface MainScreenProps {
   initialSupermarkets: string[];
   onEditSupermarkets: () => void;
+  onLogout: () => void;
 }
 
-const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupermarkets }) => {
+const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupermarkets, onLogout }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [supermarkets, setSupermarkets] = useState<string[]>(initialSupermarkets);
   const [isLoading, setIsLoading] = useState(true);
@@ -142,6 +143,11 @@ const MainScreen: React.FC<MainScreenProps> = ({ initialSupermarkets, onEditSupe
                   <li>
                     <button onClick={handleClearPrices} className="block w-full text-left px-4 py-2 text-sm hover:bg-slate-100">
                       Limpar Todos os Preços
+                    </button>
+                  </li>
+                   <li>
+                    <button onClick={onLogout} className="block w-full text-left px-4 py-2 text-sm hover:bg-slate-100">
+                      Sair
                     </button>
                   </li>
                 </ul>
